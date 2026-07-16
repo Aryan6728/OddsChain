@@ -3,7 +3,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import type { WalletContextState } from "@solana/wallet-adapter-react";
-import idl from "./idl/txmarket.json";
+import idl from "./idl/oddschain.json";
 
 const RPC = process.env.NEXT_PUBLIC_RPC ?? "https://api.devnet.solana.com";
 const USDC = new PublicKey(process.env.NEXT_PUBLIC_USDC_MINT ?? "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU");

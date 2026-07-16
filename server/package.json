@@ -1,5 +1,5 @@
 {
-  "name": "txmarket-server",
+  "name": "oddschain-server",
   "private": true,
   "type": "commonjs",
   "scripts": {

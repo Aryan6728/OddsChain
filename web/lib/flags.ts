@@ -1,0 +1,77 @@
+// UI helpers: country flag emoji + 3-letter football codes for team names.
+// Purely presentational — falls back gracefully for unknown teams.
+
+const TEAMS: Record<string, [flag: string, code: string]> = {
+  Algeria: ["🇩🇿", "ALG"],
+  Argentina: ["🇦🇷", "ARG"],
+  Australia: ["🇦🇺", "AUS"],
+  Austria: ["🇦🇹", "AUT"],
+  Belgium: ["🇧🇪", "BEL"],
+  Bolivia: ["🇧🇴", "BOL"],
+  Brazil: ["🇧🇷", "BRA"],
+  Cameroon: ["🇨🇲", "CMR"],
+  Canada: ["🇨🇦", "CAN"],
+  "Cape Verde": ["🇨🇻", "CPV"],
+  Chile: ["🇨🇱", "CHI"],
+  Colombia: ["🇨🇴", "COL"],
+  "Costa Rica": ["🇨🇷", "CRC"],
+  Croatia: ["🇭🇷", "CRO"],
+  Curacao: ["🇨🇼", "CUW"],
+  Denmark: ["🇩🇰", "DEN"],
+  Ecuador: ["🇪🇨", "ECU"],
+  Egypt: ["🇪🇬", "EGY"],
+  England: ["🏴󠁧󠁢󠁥󠁮󠁧󠁿", "ENG"],
+  France: ["🇫🇷", "FRA"],
+  Germany: ["🇩🇪", "GER"],
+  Ghana: ["🇬🇭", "GHA"],
+  Greece: ["🇬🇷", "GRE"],
+  Haiti: ["🇭🇹", "HAI"],
+  Honduras: ["🇭🇳", "HON"],
+  Hungary: ["🇭🇺", "HUN"],
+  Iran: ["🇮🇷", "IRN"],
+  Italy: ["🇮🇹", "ITA"],
+  "Ivory Coast": ["🇨🇮", "CIV"],
+  Jamaica: ["🇯🇲", "JAM"],
+  Japan: ["🇯🇵", "JPN"],
+  Jordan: ["🇯🇴", "JOR"],
+  Mexico: ["🇲🇽", "MEX"],
+  Morocco: ["🇲🇦", "MAR"],
+  Netherlands: ["🇳🇱", "NED"],
+  "New Zealand": ["🇳🇿", "NZL"],
+  Nigeria: ["🇳🇬", "NGA"],
+  Norway: ["🇳🇴", "NOR"],
+  Panama: ["🇵🇦", "PAN"],
+  Paraguay: ["🇵🇾", "PAR"],
+  Peru: ["🇵🇪", "PER"],
+  Poland: ["🇵🇱", "POL"],
+  Portugal: ["🇵🇹", "POR"],
+  Qatar: ["🇶🇦", "QAT"],
+  "Saudi Arabia": ["🇸🇦", "KSA"],
+  Scotland: ["🏴󠁧󠁢󠁳󠁣󠁴󠁿", "SCO"],
+  Senegal: ["🇸🇳", "SEN"],
+  Serbia: ["🇷🇸", "SRB"],
+  Slovakia: ["🇸🇰", "SVK"],
+  Slovenia: ["🇸🇮", "SVN"],
+  "South Africa": ["🇿🇦", "RSA"],
+  "South Korea": ["🇰🇷", "KOR"],
+  Spain: ["🇪🇸", "ESP"],
+  Sweden: ["🇸🇪", "SWE"],
+  Switzerland: ["🇨🇭", "SUI"],
+  Tunisia: ["🇹🇳", "TUN"],
+  Turkey: ["🇹🇷", "TUR"],
+  Ukraine: ["🇺🇦", "UKR"],
+  "United States": ["🇺🇸", "USA"],
+  Uruguay: ["🇺🇾", "URU"],
+  Uzbekistan: ["🇺🇿", "UZB"],
+  Venezuela: ["🇻🇪", "VEN"],
+  Wales: ["🏴󠁧󠁢󠁷󠁬󠁳󠁿", "WAL"],
+};
+
+export function flag(team: string): string {
+  return TEAMS[team]?.[0] ?? "⚽";
+}
+
+export function code(team: string): string {
+  if (TEAMS[team]) return TEAMS[team][1];
+  return team.replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase() || "TBD";
+}

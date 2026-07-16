@@ -184,7 +184,7 @@ async function main() {
     }
   });
 
-  server.listen(PORT, () => console.log(`TxMarket server on :${PORT} (REST + /ws)`));
+  server.listen(PORT, () => console.log(`OddsChain server on :${PORT} (REST + /ws)`));
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

@@ -8,7 +8,7 @@ pub const FEE_BPS: u64 = 200; // 2% fee on buys, accrues to market vault for LP/
 pub const USDC_DECIMALS: u32 = 6;
 
 #[program]
-pub mod txmarket {
+pub mod oddschain {
     use super::*;
 
     /// Create a market for a TxLINE fixture. Initial pool balances are seeded

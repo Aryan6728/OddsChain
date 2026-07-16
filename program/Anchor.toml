@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-txmarket = "E41gijUM6sbUdCa8Z26m37u8zv13C8B4yRPTkbbKpoTY"
+oddschain = "E41gijUM6sbUdCa8Z26m37u8zv13C8B4yRPTkbbKpoTY"
 
 [provider]
 cluster = "devnet"

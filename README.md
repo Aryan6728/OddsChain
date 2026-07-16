@@ -1,4 +1,4 @@
-# TxMarket — World Cup Prediction Markets powered by TxLINE
+# OddsChain — World Cup Prediction Markets powered by TxLINE
 
 Polymarket-style prediction market on Solana devnet. Every market is created from a live
 TxLINE fixture, opening prices are seeded from TxLINE StablePrice consensus odds, live odds
@@ -53,8 +53,8 @@ solana airdrop 2
 cd program
 anchor keys sync            # generates real program id, updates lib.rs + Anchor.toml
 anchor build && anchor deploy
-cp target/idl/txmarket.json ../server/idl/txmarket.json
-cp target/idl/txmarket.json ../web/lib/idl/txmarket.json
+cp target/idl/oddschain.json ../server/idl/oddschain.json
+cp target/idl/oddschain.json ../web/lib/idl/oddschain.json
 ```
 Update `NEXT_PUBLIC_PROGRAM_ID` in `web/.env.local` with the deployed id.
 
