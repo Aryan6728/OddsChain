@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif; }
+
+.card { @apply bg-panel border border-edge rounded-xl; }
+.btn-yes { @apply bg-yes/15 text-yes hover:bg-yes hover:text-white; }
+.btn-no { @apply bg-no/15 text-no hover:bg-no hover:text-white; }
+.btn-draw { @apply bg-draw/15 text-draw hover:bg-draw hover:text-white; }
+
+.wallet-adapter-button { background: #3B82F6 !important; border-radius: 10px !important; height: 38px !important; font-size: 14px !important; }
