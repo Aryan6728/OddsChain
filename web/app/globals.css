@@ -2,12 +2,30 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
-body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Inter, sans-serif; }
+:root { color-scheme: light; }
+body {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
 
-.card { @apply bg-panel border border-edge rounded-xl; }
-.btn-yes { @apply bg-yes/15 text-yes hover:bg-yes hover:text-white; }
-.btn-no { @apply bg-no/15 text-no hover:bg-no hover:text-white; }
-.btn-draw { @apply bg-draw/15 text-draw hover:bg-draw hover:text-white; }
+.card { @apply bg-panel border border-edge rounded-2xl shadow-card; }
 
-.wallet-adapter-button { background: #3B82F6 !important; border-radius: 10px !important; height: 38px !important; font-size: 14px !important; }
+/* Polymarket-style odds pill: grey, bold price, lifts to blue on hover */
+.price-pill {
+  @apply flex w-28 items-center justify-center gap-1.5 rounded-lg bg-soft px-3 py-2.5 text-sm
+    font-semibold text-ink shadow-btn transition hover:bg-accent hover:text-white;
+}
+
+.nav-tab { @apply flex items-center gap-1.5 border-b-2 border-transparent pb-2 pt-1 text-sm font-medium text-sub transition hover:text-ink; }
+.nav-tab-active { @apply border-accent text-ink; }
+
+.chip { @apply rounded-lg border border-edge bg-panel px-3 py-1 text-xs font-semibold text-sub transition hover:bg-soft; }
+
+.wallet-adapter-button {
+  background: #2d5be3 !important;
+  border-radius: 10px !important;
+  height: 38px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+}
+.wallet-adapter-button:hover { background: #2249c4 !important; }

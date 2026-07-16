@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useMarkets, homeAway } from "@/lib/api";
 import { fetchPosition, claim } from "@/lib/anchor";
+import { flag } from "@/lib/flags";
 
 export default function Portfolio() {
   const wallet = useWallet();
@@ -31,50 +32,57 @@ export default function Portfolio() {
   }
 
   if (!wallet.connected)
-    return <div className="card mt-8 p-10 text-center text-slate-400">Connect your wallet to see positions.</div>;
+    return <div className="card mt-10 p-10 text-center text-sub">Connect your wallet to see positions.</div>;
 
   const entries = Object.entries(positions);
   return (
-    <div className="pt-8">
-      <h1 className="mb-6 text-2xl font-bold text-white">Portfolio</h1>
+    <div className="pt-10">
+      <h1 className="text-3xl font-bold tracking-tight text-ink">Portfolio</h1>
+      <p className="mb-6 mt-1 text-sm text-sub">Your open positions across all markets</p>
       {entries.length === 0 && (
-        <div className="card p-10 text-center text-slate-400">
-          No open positions. <Link href="/" className="text-accent hover:underline">Browse markets →</Link>
+        <div className="card p-10 text-center text-sub">
+          No open positions. <Link href="/" className="font-medium text-accent hover:underline">Browse markets →</Link>
         </div>
       )}
-      <div className="space-y-3">
-        {entries.map(([fid, pos]) => {
-          const row = rows.find((r) => r.fixtureId === Number(fid));
-          if (!row) return null;
-          const { home, away } = homeAway(row.fixture);
-          const names = [home, "Draw", away];
-          return (
-            <div key={fid} className="card flex flex-wrap items-center gap-4 p-4">
-              <Link href={`/market/${fid}`} className="min-w-48 font-semibold text-white hover:text-accent">
-                {home} vs {away}
-              </Link>
-              <div className="flex gap-4 text-sm">
-                {names.map((n, i) => {
-                  const s = pos.shares[i].toNumber() / 1e6;
-                  return s > 0 ? (
-                    <span key={n} className="text-slate-300">{n.split(" ")[0]}: <b className="text-white">{s.toFixed(2)}</b></span>
-                  ) : null;
-                })}
+      {entries.length > 0 && (
+        <div className="card divide-y divide-edge overflow-hidden">
+          {entries.map(([fid, pos]) => {
+            const row = rows.find((r) => r.fixtureId === Number(fid));
+            if (!row) return null;
+            const { home, away } = homeAway(row.fixture);
+            const names = [home, "Draw", away];
+            return (
+              <div key={fid} className="flex flex-wrap items-center gap-4 p-4 transition hover:bg-soft/60">
+                <Link href={`/market/${fid}`} className="flex min-w-48 items-center gap-2 font-semibold text-ink hover:text-accent">
+                  <span className="text-lg">{flag(home)}</span>
+                  {home} vs {away}
+                  <span className="text-lg">{flag(away)}</span>
+                </Link>
+                <div className="flex gap-4 text-sm">
+                  {names.map((n, i) => {
+                    const s = pos.shares[i].toNumber() / 1e6;
+                    return s > 0 ? (
+                      <span key={n} className="rounded-lg bg-soft px-2.5 py-1 text-sub">
+                        {n.split(" ")[0]}: <b className="text-ink">{s.toFixed(2)}</b>
+                      </span>
+                    ) : null;
+                  })}
+                </div>
+                <div className="ml-auto">
+                  {row.resolved ? (
+                    <button onClick={() => onClaim(Number(fid))} disabled={busy === Number(fid)}
+                      className="rounded-lg bg-yes px-4 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:opacity-50">
+                      {busy === Number(fid) ? "Claiming…" : "Claim"}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-faint">Awaiting result</span>
+                  )}
+                </div>
               </div>
-              <div className="ml-auto">
-                {row.resolved ? (
-                  <button onClick={() => onClaim(Number(fid))} disabled={busy === Number(fid)}
-                    className="rounded-lg bg-yes px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">
-                    {busy === Number(fid) ? "Claiming…" : "Claim"}
-                  </button>
-                ) : (
-                  <span className="text-xs text-slate-500">Awaiting result</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
