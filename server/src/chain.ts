@@ -21,7 +21,7 @@ class Chain {
     const connection = new Connection(RPC, "confirmed");
     const provider = new anchor.AnchorProvider(connection, new anchor.Wallet(this.payer), { commitment: "confirmed" });
     anchor.setProvider(provider);
-    const idl = JSON.parse(fs.readFileSync(path.join(__dirname, "../idl/txmarket.json"), "utf8"));
+    const idl = JSON.parse(fs.readFileSync(path.join(__dirname, "../idl/oddschain.json"), "utf8"));
     this.program = new anchor.Program(idl, provider);
     console.log(`[chain] program ${this.program.programId.toBase58()} keeper ${this.payer.publicKey.toBase58()}`);
   }

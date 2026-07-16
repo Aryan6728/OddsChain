@@ -30,8 +30,8 @@ export function Header() {
         {/* top row: logo · search · wallet */}
         <div className="flex items-center gap-4 py-3">
           <Link href="/" className="flex shrink-0 items-center gap-2 text-lg font-bold text-ink">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-sm font-bold text-white">Tx</span>
-            TxMarket
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-sm font-bold text-white">OC</span>
+            OddsChain
           </Link>
 
           <form

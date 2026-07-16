@@ -4,7 +4,7 @@ import { Providers } from "@/components/Providers";
 import { Header } from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "TxMarket — World Cup Prediction Markets",
+  title: "OddsChain — World Cup Prediction Markets",
   description: "Trade World Cup outcomes with live TxLINE consensus odds, settled on Solana devnet.",
 };
 
