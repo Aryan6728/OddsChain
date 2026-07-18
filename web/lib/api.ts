@@ -57,6 +57,33 @@ export function useMarkets() {
   return { rows, live };
 }
 
+export interface ScheduleRow {
+  fixtureId: number;
+  fixture: MarketRow["fixture"];
+  market: string | null;
+  odds: any;
+  score: any;
+  result: [number, number] | null;
+  finished: boolean;
+  resolved: boolean;
+}
+
+/** Full fixture schedule (past + upcoming), polled once a minute. */
+export function useSchedule() {
+  const [schedule, setSchedule] = useState<ScheduleRow[]>([]);
+
+  useEffect(() => {
+    let dead = false;
+    const load = () =>
+      fetch(`${API}/schedule`).then((r) => r.json()).then((d) => !dead && setSchedule(d)).catch(() => {});
+    load();
+    const t = setInterval(load, 60_000);
+    return () => { dead = true; clearInterval(t); };
+  }, []);
+
+  return { schedule };
+}
+
 export function impliedPrices(odds: any): number[] | null {
   const pct = odds?.Pct;
   if (!Array.isArray(pct) || pct.length !== 3) return null;

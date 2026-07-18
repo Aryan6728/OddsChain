@@ -64,8 +64,8 @@ export function Header() {
           <Link href="/" className={`nav-tab ${onMarkets ? "nav-tab-active" : ""}`}>
             <span>🏆</span> World Cup
           </Link>
-          <Link href="/" className="nav-tab">
-            <span>⚽</span> Sports
+          <Link href="/schedule" className={`nav-tab ${pathname === "/schedule" ? "nav-tab-active" : ""}`}>
+            <span>📅</span> Schedule
           </Link>
           <Link href="/portfolio" className={`nav-tab ${pathname === "/portfolio" ? "nav-tab-active" : ""}`}>
             Portfolio
