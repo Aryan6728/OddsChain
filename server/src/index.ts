@@ -132,6 +132,10 @@ app.get("/scores/:fixtureId", async (req, res) => {
   try { res.json(await tx.scores(Number(req.params.fixtureId))); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
+app.get("/historical/:fixtureId", async (req, res) => {
+  try { res.json(await tx.historicalScores(Number(req.params.fixtureId))); }
+  catch (e: any) { res.status(500).json({ error: e.message }); }
+});
 
 async function tryCreateMarketForFixture(fixtureId: number) {
   if (state.markets.has(fixtureId)) return;
@@ -232,20 +236,39 @@ async function syncResults() {
     const id = f.FixtureId;
     const attempts = (state.results.get(id)?.attempts ?? 0) + 1;
     let msgs: any[] = [];
-    try { msgs = await tx.scores(id); } catch {}
+    try { msgs = await tx.scores(id); } catch (e: any) { console.warn(`[results] ${id} snapshot: ${e.message}`); }
     let score = Array.isArray(msgs) ? lastScore(msgs) : null;
     let final = Array.isArray(msgs) && msgs.length ? isFinal(msgs[msgs.length - 1]) : false;
+    let seq = Array.isArray(msgs) && msgs.length ? Number(msgs[msgs.length - 1]?.Seq ?? 0) : 0;
     if (!score) {
       try {
         const hist = await tx.historicalScores(id);
         if (Array.isArray(hist) && hist.length) {
           score = lastScore(hist);
           final = final || isFinal(hist[hist.length - 1]) || !!score; // history only exists for completed games
+          seq = Number(hist[hist.length - 1]?.Seq ?? seq);
         }
-      } catch {}
+      } catch (e: any) { console.warn(`[results] ${id} historical: ${e.message}`); }
     }
     const finished = final || Number(f.StartTime) + FINISHED_AFTER_MS < now;
-    if (score || finished) state.results.set(id, { score, finished, attempts });
+    if (score || finished) {
+      state.results.set(id, { score, finished, attempts });
+      console.log(`[results] ${id} score=${score ? score.join("-") : "unknown"} finished=${finished} attempt=${attempts}`);
+    }
+
+    // keeper backfill: settle markets whose live "final" event was missed
+    if (score && finished && state.markets.has(id) && !state.resolved.has(id)) {
+      const winner = score[0] > score[1] ? 0 : score[0] === score[1] ? 1 : 2;
+      try {
+        const sig = await chain.resolve(id, winner, seq);
+        state.resolved.add(id);
+        state.winners.set(id, winner);
+        console.log(`[keeper] backfill resolved fixture ${id} winner=${winner} tx=${sig}`);
+        broadcast("resolved", { fixtureId: id, winner, tx: sig });
+      } catch (e: any) {
+        console.error(`[keeper] backfill resolve failed for ${id}: ${e.message}`);
+      }
+    }
   }
 }
 
