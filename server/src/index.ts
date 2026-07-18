@@ -57,6 +57,12 @@ function isFinal(msg: any): boolean {
 }
 
 function extractScore(msg: any): [number, number] | null {
+  // TxLINE nested shape: Score.Participant1.Total.Goals (missing Goals key = 0)
+  const sc = msg?.Score;
+  if (sc && (sc.Participant1 || sc.Participant2)) {
+    return [Number(sc.Participant1?.Total?.Goals ?? 0), Number(sc.Participant2?.Total?.Goals ?? 0)];
+  }
+  // flat fallbacks
   const spots = [msg?.Stats, msg?.Data, msg];
   for (const s of spots) {
     if (!s) continue;
@@ -207,13 +213,21 @@ async function restoreFromChain() {
 const FINISHED_AFTER_MS = 4 * 3600_000; // a football match is long over 4h after kickoff
 const MAX_RESULT_ATTEMPTS = 12;
 
-/** Latest extractable score in a message sequence — final/admin events often carry none. */
-function lastScore(msgs: any[]): [number, number] | null {
-  for (let i = msgs.length - 1; i >= 0; i--) {
-    const sc = extractScore(msgs[i]);
-    if (sc) return sc;
+/**
+ * Reduce a score-message list to { score, final, seq }. Snapshot/history
+ * responses are NOT chronological (sorted by action name), so order by Seq
+ * and prefer the game_finalised message's score over the latest running one.
+ */
+function digestScores(msgs: any[]): { score: [number, number] | null; final: boolean; seq: number } {
+  const sorted = [...msgs].sort((a, b) => Number(a?.Seq ?? 0) - Number(b?.Seq ?? 0));
+  let finalMsg: any = null;
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (isFinal(sorted[i])) { finalMsg = sorted[i]; break; }
   }
-  return null;
+  let score = finalMsg ? extractScore(finalMsg) : null;
+  for (let i = sorted.length - 1; score === null && i >= 0; i--) score = extractScore(sorted[i]);
+  const last = sorted[sorted.length - 1];
+  return { score, final: !!finalMsg, seq: Number((finalMsg ?? last)?.Seq ?? 0) };
 }
 
 /**
@@ -237,16 +251,15 @@ async function syncResults() {
     const attempts = (state.results.get(id)?.attempts ?? 0) + 1;
     let msgs: any[] = [];
     try { msgs = await tx.scores(id); } catch (e: any) { console.warn(`[results] ${id} snapshot: ${e.message}`); }
-    let score = Array.isArray(msgs) ? lastScore(msgs) : null;
-    let final = Array.isArray(msgs) && msgs.length ? isFinal(msgs[msgs.length - 1]) : false;
-    let seq = Array.isArray(msgs) && msgs.length ? Number(msgs[msgs.length - 1]?.Seq ?? 0) : 0;
+    let { score, final, seq } = digestScores(Array.isArray(msgs) ? msgs : []);
     if (!score) {
       try {
         const hist = await tx.historicalScores(id);
         if (Array.isArray(hist) && hist.length) {
-          score = lastScore(hist);
-          final = final || isFinal(hist[hist.length - 1]) || !!score; // history only exists for completed games
-          seq = Number(hist[hist.length - 1]?.Seq ?? seq);
+          const d = digestScores(hist);
+          score = d.score;
+          final = final || d.final || !!d.score; // history only exists for completed games
+          seq = d.seq || seq;
         }
       } catch (e: any) { console.warn(`[results] ${id} historical: ${e.message}`); }
     }
