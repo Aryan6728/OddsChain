@@ -15,6 +15,8 @@ export interface MarketRow {
   };
   odds: any;
   score: any;
+  result?: [number, number] | null;
+  winner?: number | null; // 0 home / 1 draw / 2 away
   resolved: boolean;
 }
 
@@ -64,6 +66,7 @@ export interface ScheduleRow {
   odds: any;
   score: any;
   result: [number, number] | null;
+  winner: number | null; // 0 home / 1 draw / 2 away
   finished: boolean;
   resolved: boolean;
 }
