@@ -2,7 +2,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useMarkets, impliedPrices, cents, homeAway, liveScore, MarketRow } from "@/lib/api";
-import { flag, code } from "@/lib/flags";
+import { code } from "@/lib/flags";
+import { Flag } from "@/components/Flag";
 
 function dayLabel(d: Date) {
   return d.toLocaleDateString("en-US", { weekday: "short", month: "long", day: "numeric" });
@@ -47,7 +48,7 @@ function GameRow({ row }: { row: MarketRow }) {
         <div className="min-w-0 flex-1 space-y-3">
           {[home, away].map((team, i) => (
             <div key={team} className="flex items-center gap-2.5">
-              <span className="text-xl leading-none">{flag(team)}</span>
+              <Flag team={team} />
               <span className="truncate font-semibold text-ink">{team}</span>
               {score && <span className="ml-auto pr-2 text-sm font-bold text-ink">{score[i]}</span>}
             </div>

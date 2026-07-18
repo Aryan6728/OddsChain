@@ -57,6 +57,21 @@ class Chain {
     return market.toBase58();
   }
 
+  /** All markets ever created by this program — the chain is the durable store. */
+  async allMarkets(): Promise<
+    { fixtureId: number; market: string; title: string; resolved: boolean; winner: number; closeTs: number }[]
+  > {
+    const accounts = await (this.program.account as any).market.all();
+    return accounts.map((a: any) => ({
+      fixtureId: Number(a.account.fixtureId),
+      market: a.publicKey.toBase58(),
+      title: String(a.account.title),
+      resolved: Boolean(a.account.resolved),
+      winner: Number(a.account.winner),
+      closeTs: Number(a.account.closeTs),
+    }));
+  }
+
   async resolve(fixtureId: number, winner: number, txlineRef: number): Promise<string> {
     const [market] = this.marketPda(fixtureId);
     return (this.program.methods as any)

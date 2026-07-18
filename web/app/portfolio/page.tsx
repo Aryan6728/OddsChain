@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useMarkets, homeAway } from "@/lib/api";
 import { fetchPosition, claim } from "@/lib/anchor";
-import { flag } from "@/lib/flags";
+import { Flag } from "@/components/Flag";
 
 export default function Portfolio() {
   const wallet = useWallet();
@@ -54,9 +54,9 @@ export default function Portfolio() {
             return (
               <div key={fid} className="flex flex-wrap items-center gap-4 p-4 transition hover:bg-soft/60">
                 <Link href={`/market/${fid}`} className="flex min-w-48 items-center gap-2 font-semibold text-ink hover:text-accent">
-                  <span className="text-lg">{flag(home)}</span>
+                  <Flag team={home} />
                   {home} vs {away}
-                  <span className="text-lg">{flag(away)}</span>
+                  <Flag team={away} />
                 </Link>
                 <div className="flex gap-4 text-sm">
                   {names.map((n, i) => {

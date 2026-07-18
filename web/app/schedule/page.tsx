@@ -2,7 +2,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useSchedule, impliedPrices, cents, homeAway, liveScore, ScheduleRow } from "@/lib/api";
-import { flag, code } from "@/lib/flags";
+import { code } from "@/lib/flags";
+import { Flag } from "@/components/Flag";
 
 type Filter = "all" | "upcoming" | "finished";
 
@@ -51,7 +52,7 @@ function FixtureRow({ row }: { row: ScheduleRow }) {
             const lost = winner !== null && winner !== -1 && !won;
             return (
               <div key={team} className="flex items-center gap-2.5">
-                <span className="text-xl leading-none">{flag(team)}</span>
+                <Flag team={team} />
                 <span className={`truncate font-semibold ${lost ? "text-sub" : "text-ink"}`}>{team}</span>
                 {result && (
                   <span className={`ml-auto pr-2 text-sm font-bold ${lost ? "text-sub" : "text-ink"}`}>

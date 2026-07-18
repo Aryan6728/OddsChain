@@ -166,24 +166,60 @@ async function syncFixturesAndMarkets() {
 }
 
 /**
+ * Restore state from the chain on boot. Markets (and their resolved status)
+ * live on-chain forever, so a server restart — e.g. the host spinning the
+ * process down — no longer forgets past markets. Fixtures that have dropped
+ * out of the TxLINE snapshot are reconstructed from the market's title and
+ * close timestamp so finished games keep showing on the site.
+ */
+async function restoreFromChain() {
+  try {
+    const markets = await chain.allMarkets();
+    for (const m of markets) {
+      state.markets.set(m.fixtureId, m.market);
+      if (m.resolved) state.resolved.add(m.fixtureId);
+      if (!state.fixtures.has(m.fixtureId)) {
+        const [p1, p2] = m.title.split(" vs ");
+        state.fixtures.set(m.fixtureId, {
+          FixtureId: m.fixtureId,
+          Participant1: p1 ?? m.title,
+          Participant2: p2 ?? "",
+          Participant1IsHome: true,
+          StartTime: m.closeTs * 1000,
+        });
+      }
+    }
+    console.log(`[restore] ${markets.length} markets loaded from chain (${state.resolved.size} resolved)`);
+  } catch (e: any) {
+    console.error(`[restore] failed: ${e.message}`);
+  }
+}
+
+const FINISHED_AFTER_MS = 4 * 3600_000; // a football match is long over 4h after kickoff
+
+/**
  * Backfill final results for fixtures that already kicked off, from the TxLINE
- * score snapshot. Runs on its own interval, a few fixtures per pass, and never
- * refetches a fixture once its result is final — the live score stream and
- * keeper are untouched by this.
+ * score snapshot (falling back to the historical endpoint). Runs on its own
+ * interval, a few fixtures per pass, and never refetches a fixture once its
+ * result is final — the live score stream and keeper are untouched by this.
  */
 async function syncResults() {
+  const now = Date.now();
   const pending = [...state.fixtures.values()]
-    .filter((f) => Number(f.StartTime) < Date.now() && !state.results.get(f.FixtureId)?.finished)
+    .filter((f) => Number(f.StartTime) < now && !state.results.get(f.FixtureId)?.finished)
     .slice(0, 10);
   for (const f of pending) {
-    try {
-      const msgs = await tx.scores(f.FixtureId);
-      if (!Array.isArray(msgs) || msgs.length === 0) continue;
-      const last = msgs[msgs.length - 1];
-      state.results.set(f.FixtureId, { score: extractScore(last), finished: isFinal(last) });
-    } catch (e: any) {
-      console.warn(`[results] snapshot failed for ${f.FixtureId}: ${e.message}`);
+    const id = f.FixtureId;
+    let msgs: any[] = [];
+    try { msgs = await tx.scores(id); } catch {}
+    if (!Array.isArray(msgs) || msgs.length === 0) {
+      try { msgs = await tx.historicalScores(id); } catch {}
     }
+    const last = Array.isArray(msgs) && msgs.length ? msgs[msgs.length - 1] : null;
+    const score = last ? extractScore(last) : null;
+    const longOver = Number(f.StartTime) + FINISHED_AFTER_MS < now;
+    const finished = (last ? isFinal(last) : false) || longOver;
+    if (score || finished) state.results.set(id, { score, finished });
   }
 }
 
@@ -191,6 +227,7 @@ async function main() {
   await tx.init();
   await chain.init();
 
+  await restoreFromChain();
   await syncFixturesAndMarkets();
   setInterval(syncFixturesAndMarkets, 5 * 60000);
   syncResults();
