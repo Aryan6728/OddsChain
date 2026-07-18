@@ -4,7 +4,8 @@ import { useParams } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useMarkets, impliedPrices, cents, homeAway } from "@/lib/api";
 import { fetchMarket, fetchPosition, poolPrices, quoteBuy, buy, claim } from "@/lib/anchor";
-import { flag, code } from "@/lib/flags";
+import { code } from "@/lib/flags";
+import { Flag } from "@/components/Flag";
 
 const LABELS = ["Home wins", "Draw", "Away wins"];
 const COLORS = ["text-accent", "text-draw", "text-no"];
@@ -71,8 +72,8 @@ export default function MarketPage() {
       <div>
         {/* header */}
         <div className="flex items-center gap-3">
-          <span className="text-3xl">{flag(home)}</span>
-          <span className="text-3xl">{flag(away)}</span>
+          <Flag team={home} size={34} />
+          <Flag team={away} size={34} />
           <h1 className="text-2xl font-bold text-ink sm:text-3xl">{home} vs {away}</h1>
         </div>
         <p className="mt-2 text-sm text-sub">
@@ -93,7 +94,7 @@ export default function MarketPage() {
               <div key={label} className="p-4">
                 <div className="mb-1.5 flex items-baseline justify-between">
                   <span className="flex items-center gap-2 font-semibold text-ink">
-                    {i !== 1 && <span className="text-lg leading-none">{flag(names[i])}</span>}
+                    {i !== 1 && <Flag team={names[i]} />}
                     {names[i]}
                   </span>
                   <span className={`text-lg font-bold ${COLORS[i]}`}>{cents(p)}</span>
@@ -134,7 +135,11 @@ export default function MarketPage() {
       {/* trade widget */}
       <div className="card h-fit p-5 lg:sticky lg:top-28">
         <div className="flex items-center gap-2.5">
-          <span className="text-2xl">{outcome === 1 ? "🤝" : flag(names[outcome])}</span>
+          {outcome === 1 ? (
+            <span className="grid h-[22px] w-[30px] shrink-0 place-items-center rounded-[3px] border border-edge bg-soft text-[10px] font-bold text-sub">X</span>
+          ) : (
+            <Flag team={names[outcome]} size={30} />
+          )}
           <div>
             <div className="text-xs text-sub">Match winner</div>
             <div className="font-bold text-ink">{names[outcome]}</div>
