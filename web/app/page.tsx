@@ -22,7 +22,8 @@ function GameRow({ row }: { row: MarketRow }) {
   const { home, away } = homeAway(row.fixture);
   const prices = impliedPrices(row.odds);
   const kick = new Date(row.fixture.StartTime);
-  const score = row.score ? liveScore(row.score) : null;
+  const live = row.score ? liveScore(row.score) : null;
+  const score = live ?? row.result ?? null;
 
   return (
     <Link href={`/market/${row.fixtureId}`} className="block p-4 transition hover:bg-soft/60">
@@ -33,7 +34,7 @@ function GameRow({ row }: { row: MarketRow }) {
             ? "Final"
             : kick.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
         </span>
-        {score && !row.resolved && (
+        {live && !row.resolved && (
           <span className="inline-flex items-center gap-1 rounded bg-no/10 px-1.5 py-0.5 text-[11px] font-semibold text-no">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-no" /> LIVE
           </span>

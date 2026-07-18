@@ -23,7 +23,12 @@ function FixtureRow({ row }: { row: ScheduleRow }) {
   const result = row.result ?? (row.score ? liveScore(row.score) : null);
   const isLive = started && !row.finished && !!result;
   const prices = !row.finished && row.market ? impliedPrices(row.odds) : null;
-  const winner = row.finished && result ? (result[0] > result[1] ? 0 : result[0] < result[1] ? 1 : -1) : null;
+  // winning side: from the score, else from the on-chain resolution (0 home / 1 draw / 2 away)
+  const winner = row.finished
+    ? result
+      ? result[0] > result[1] ? 0 : result[0] < result[1] ? 1 : -1
+      : row.winner === 0 ? 0 : row.winner === 2 ? 1 : row.winner === 1 ? -1 : null
+    : null;
 
   const body = (
     <>
@@ -54,11 +59,13 @@ function FixtureRow({ row }: { row: ScheduleRow }) {
               <div key={team} className="flex items-center gap-2.5">
                 <Flag team={team} />
                 <span className={`truncate font-semibold ${lost ? "text-sub" : "text-ink"}`}>{team}</span>
-                {result && (
+                {result ? (
                   <span className={`ml-auto pr-2 text-sm font-bold ${lost ? "text-sub" : "text-ink"}`}>
                     {result[i]}
                   </span>
-                )}
+                ) : won ? (
+                  <span className="ml-auto pr-2 text-sm font-bold text-yes">✓</span>
+                ) : null}
               </div>
             );
           })}

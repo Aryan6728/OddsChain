@@ -14,9 +14,11 @@ const state = {
   scores: new Map<number, any>(),
   markets: new Map<number, string>(),
   resolved: new Set<number>(),
-  // final results for past fixtures, fetched once from the TxLINE score
-  // snapshot and cached: fixtureId -> { score: [s1, s2] | null, finished }
-  results: new Map<number, { score: [number, number] | null; finished: boolean }>(),
+  // winning outcome (0 home / 1 draw / 2 away) for resolved markets, from chain
+  winners: new Map<number, number>(),
+  // final results for past fixtures, from the TxLINE score snapshot/history:
+  // fixtureId -> { score: [s1, s2] | null, finished, attempts }
+  results: new Map<number, { score: [number, number] | null; finished: boolean; attempts: number }>(),
 };
 
 function requireEnv(k: string): string {
@@ -94,6 +96,8 @@ app.get("/markets", (_q, res) =>
       fixture: state.fixtures.get(fixtureId),
       odds: state.odds.get(fixtureId) ?? null,
       score: state.scores.get(fixtureId) ?? null,
+      result: state.results.get(fixtureId)?.score ?? null,
+      winner: state.winners.get(fixtureId) ?? null,
       resolved: state.resolved.has(fixtureId),
     })),
   ),
@@ -112,6 +116,7 @@ app.get("/schedule", (_q, res) =>
           odds: state.odds.get(id) ?? null,
           score: live,
           result: result?.score ?? null,
+          winner: state.winners.get(id) ?? null,
           finished: (result?.finished ?? false) || state.resolved.has(id),
           resolved: state.resolved.has(id),
         };
@@ -177,7 +182,7 @@ async function restoreFromChain() {
     const markets = await chain.allMarkets();
     for (const m of markets) {
       state.markets.set(m.fixtureId, m.market);
-      if (m.resolved) state.resolved.add(m.fixtureId);
+      if (m.resolved) { state.resolved.add(m.fixtureId); state.winners.set(m.fixtureId, m.winner); }
       if (!state.fixtures.has(m.fixtureId)) {
         const [p1, p2] = m.title.split(" vs ");
         state.fixtures.set(m.fixtureId, {
@@ -196,30 +201,51 @@ async function restoreFromChain() {
 }
 
 const FINISHED_AFTER_MS = 4 * 3600_000; // a football match is long over 4h after kickoff
+const MAX_RESULT_ATTEMPTS = 12;
+
+/** Latest extractable score in a message sequence — final/admin events often carry none. */
+function lastScore(msgs: any[]): [number, number] | null {
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const sc = extractScore(msgs[i]);
+    if (sc) return sc;
+  }
+  return null;
+}
 
 /**
  * Backfill final results for fixtures that already kicked off, from the TxLINE
  * score snapshot (falling back to the historical endpoint). Runs on its own
- * interval, a few fixtures per pass, and never refetches a fixture once its
- * result is final — the live score stream and keeper are untouched by this.
+ * interval, a few fixtures per pass; a fixture without a score is retried a
+ * few times before giving up — the live score stream and keeper are untouched.
  */
 async function syncResults() {
   const now = Date.now();
   const pending = [...state.fixtures.values()]
-    .filter((f) => Number(f.StartTime) < now && !state.results.get(f.FixtureId)?.finished)
+    .filter((f) => {
+      if (Number(f.StartTime) >= now) return false;
+      const r = state.results.get(f.FixtureId);
+      if (!r) return true;
+      return !r.score && r.attempts < MAX_RESULT_ATTEMPTS; // keep retrying while scoreless
+    })
     .slice(0, 10);
   for (const f of pending) {
     const id = f.FixtureId;
+    const attempts = (state.results.get(id)?.attempts ?? 0) + 1;
     let msgs: any[] = [];
     try { msgs = await tx.scores(id); } catch {}
-    if (!Array.isArray(msgs) || msgs.length === 0) {
-      try { msgs = await tx.historicalScores(id); } catch {}
+    let score = Array.isArray(msgs) ? lastScore(msgs) : null;
+    let final = Array.isArray(msgs) && msgs.length ? isFinal(msgs[msgs.length - 1]) : false;
+    if (!score) {
+      try {
+        const hist = await tx.historicalScores(id);
+        if (Array.isArray(hist) && hist.length) {
+          score = lastScore(hist);
+          final = final || isFinal(hist[hist.length - 1]) || !!score; // history only exists for completed games
+        }
+      } catch {}
     }
-    const last = Array.isArray(msgs) && msgs.length ? msgs[msgs.length - 1] : null;
-    const score = last ? extractScore(last) : null;
-    const longOver = Number(f.StartTime) + FINISHED_AFTER_MS < now;
-    const finished = (last ? isFinal(last) : false) || longOver;
-    if (score || finished) state.results.set(id, { score, finished });
+    const finished = final || Number(f.StartTime) + FINISHED_AFTER_MS < now;
+    if (score || finished) state.results.set(id, { score, finished, attempts });
   }
 }
 
@@ -249,6 +275,12 @@ async function main() {
     state.scores.set(id, data);
     broadcast("score", { fixtureId: id, data });
 
+    // remember the final score for every fixture, market or not
+    if (isFinal(data)) {
+      const score = extractScore(data) ?? state.results.get(id)?.score ?? null;
+      state.results.set(id, { score, finished: true, attempts: 0 });
+    }
+
     if (isFinal(data) && state.markets.has(id) && !state.resolved.has(id)) {
       console.log(`[keeper] FINAL detected for ${id}, raw message:`);
       console.log(JSON.stringify(data, null, 2));
@@ -261,6 +293,7 @@ async function main() {
       try {
         const sig = await chain.resolve(id, winner, seq);
         state.resolved.add(id);
+        state.winners.set(id, winner);
         console.log(`[keeper] resolved fixture ${id} winner=${winner} tx=${sig}`);
         broadcast("resolved", { fixtureId: id, winner, tx: sig });
       } catch (e: any) {
