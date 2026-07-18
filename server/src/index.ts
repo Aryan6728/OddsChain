@@ -14,6 +14,9 @@ const state = {
   scores: new Map<number, any>(),
   markets: new Map<number, string>(),
   resolved: new Set<number>(),
+  // final results for past fixtures, fetched once from the TxLINE score
+  // snapshot and cached: fixtureId -> { score: [s1, s2] | null, finished }
+  results: new Map<number, { score: [number, number] | null; finished: boolean }>(),
 };
 
 function requireEnv(k: string): string {
@@ -95,6 +98,27 @@ app.get("/markets", (_q, res) =>
     })),
   ),
 );
+app.get("/schedule", (_q, res) =>
+  res.json(
+    [...state.fixtures.values()]
+      .map((f) => {
+        const id = f.FixtureId;
+        const live = state.scores.get(id) ?? null;
+        const result = state.results.get(id) ?? null;
+        return {
+          fixtureId: id,
+          fixture: f,
+          market: state.markets.get(id) ?? null,
+          odds: state.odds.get(id) ?? null,
+          score: live,
+          result: result?.score ?? null,
+          finished: (result?.finished ?? false) || state.resolved.has(id),
+          resolved: state.resolved.has(id),
+        };
+      })
+      .sort((a, b) => Number(a.fixture.StartTime) - Number(b.fixture.StartTime)),
+  ),
+);
 app.get("/odds/:fixtureId", async (req, res) => {
   try { res.json(await tx.odds(Number(req.params.fixtureId))); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
@@ -141,12 +165,36 @@ async function syncFixturesAndMarkets() {
   }
 }
 
+/**
+ * Backfill final results for fixtures that already kicked off, from the TxLINE
+ * score snapshot. Runs on its own interval, a few fixtures per pass, and never
+ * refetches a fixture once its result is final — the live score stream and
+ * keeper are untouched by this.
+ */
+async function syncResults() {
+  const pending = [...state.fixtures.values()]
+    .filter((f) => Number(f.StartTime) < Date.now() && !state.results.get(f.FixtureId)?.finished)
+    .slice(0, 10);
+  for (const f of pending) {
+    try {
+      const msgs = await tx.scores(f.FixtureId);
+      if (!Array.isArray(msgs) || msgs.length === 0) continue;
+      const last = msgs[msgs.length - 1];
+      state.results.set(f.FixtureId, { score: extractScore(last), finished: isFinal(last) });
+    } catch (e: any) {
+      console.warn(`[results] snapshot failed for ${f.FixtureId}: ${e.message}`);
+    }
+  }
+}
+
 async function main() {
   await tx.init();
   await chain.init();
 
   await syncFixturesAndMarkets();
   setInterval(syncFixturesAndMarkets, 5 * 60000);
+  syncResults();
+  setInterval(syncResults, 2 * 60000);
 
   tx.stream("odds", (_ev, data) => {
     const id = fid(data);
