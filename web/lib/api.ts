@@ -97,6 +97,11 @@ export function impliedPrices(odds: any): number[] | null {
 }
 
 export function liveScore(msg: any): [number, number] | null {
+  // TxLINE nested shape: Score.Participant1.Total.Goals (missing Goals key = 0)
+  const sc = msg?.Score;
+  if (sc && (sc.Participant1 || sc.Participant2)) {
+    return [Number(sc.Participant1?.Total?.Goals ?? 0), Number(sc.Participant2?.Total?.Goals ?? 0)];
+  }
   const spots = [msg?.Stats, msg?.Data, msg];
   for (const s of spots) {
     if (!s) continue;
