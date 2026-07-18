@@ -91,7 +91,9 @@ function FixtureRow({ row }: { row: ScheduleRow }) {
           </>
         ) : (
           <span className="shrink-0 text-xs text-faint">
-            {row.finished ? (row.market ? "Market settled" : "") : row.market ? "" : "Market opening soon"}
+            {row.finished
+              ? row.market ? (row.resolved ? "Market settled" : "Settling…") : ""
+              : row.market ? "" : "Market opening soon"}
           </span>
         )}
       </div>
