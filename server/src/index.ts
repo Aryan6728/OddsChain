@@ -167,10 +167,24 @@ async function tryCreateMarketForFixture(fixtureId: number) {
   }
 }
 
+// World Cup competition id on TxLINE (72). Set env to another id, or 0 to disable.
+const WC_COMPETITION_ID = Number(process.env.WC_COMPETITION_ID ?? 72);
+
 async function syncFixturesAndMarkets() {
   try {
-    const fixtures = await tx.fixtures();
+    let fixtures = await tx.fixtures();
     console.log(`[sync] ${fixtures.length} fixtures from TxLINE`);
+    if (WC_COMPETITION_ID) {
+      try {
+        const wc = await tx.fixtures(WC_COMPETITION_ID);
+        const seen = new Set(fixtures.map((f) => f.FixtureId));
+        const extra = wc.filter((f) => !seen.has(f.FixtureId));
+        fixtures = fixtures.concat(extra);
+        console.log(`[sync] +${extra.length} fixtures from competition ${WC_COMPETITION_ID} (${wc.length} total)`);
+      } catch (e: any) {
+        console.warn(`[sync] competition ${WC_COMPETITION_ID} fetch failed: ${e.message}`);
+      }
+    }
     for (const f of fixtures) {
       state.fixtures.set(f.FixtureId, f);
       await tryCreateMarketForFixture(f.FixtureId);
@@ -245,7 +259,7 @@ async function syncResults() {
       if (!r) return true;
       return !r.score && r.attempts < MAX_RESULT_ATTEMPTS; // keep retrying while scoreless
     })
-    .slice(0, 10);
+    .slice(0, 25);
   for (const f of pending) {
     const id = f.FixtureId;
     const attempts = (state.results.get(id)?.attempts ?? 0) + 1;
