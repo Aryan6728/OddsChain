@@ -3,7 +3,7 @@
 A prediction market on Solana devnet. Every market is created from a live
 TxLINE fixture, opening prices are seeded from TxLINE StablePrice consensus odds, live odds
 and scores stream in over SSE, and a keeper bot resolves markets on-chain the moment
-TxLINE's score feed reports the match final. 
+TxLINE's score feed reports the match final.
 
 ## Architecture
 
